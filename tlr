@@ -10,9 +10,12 @@ import argcomplete
 import pytz
 from dateutil import parser, relativedelta
 
-PATH_TO_RECENTLY_USED_LOG = "/home/christoph/.local/share/recently-used.xbel"  # Change to your recent files log
-LOCAL_TIMEZONE = pytz.timezone("Europe/Amsterdam")  # Change to your local timezone
-
+# Change to your recent files log
+PATH_TO_RECENTLY_USED_LOG = os.path.join(
+    os.path.expanduser("~"), ".local/share/recently-used.xbel"
+)
+# Change to your local timezone
+LOCAL_TIMEZONE = pytz.timezone("Europe/Amsterdam")
 
 def parse_recently_opened_markdown_files(path: str) -> Dict[str, dict]:
     # from local folder
