@@ -6,7 +6,7 @@ Launch your Typora notes from everywhere using the CLI and autocomplete.
 ## Idea
 Want to start [Typora](https://typora.io/) from the terminal but not type the full file path?
 
-This script adds [autocomplete](https://kislyuk.github.io/argcomplete/) with all your recent markdown files!
+This script adds [autocomplete](https://kislyuk.github.io/argcomplete/) with all your recent markdown files! It even allows you to open files from completely different locations.
 
 ##  Features
 1. Use `tlr xy<tab>` to open recently modified markdown files
