@@ -15,6 +15,7 @@ This script adds [autocomplete](https://kislyuk.github.io/argcomplete/) with all
 
 ## Installation
 ```bash
+git clone https://github.com/ch-sa/typora_launch_recent.git
 cd typora_launch_recent
 pip3 install argcomplete
 cp tlr ~/.local/bin/
