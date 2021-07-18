@@ -1,0 +1,121 @@
+#!/usr/bin/python3
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import datetime as dt
+import os
+import xml.etree.ElementTree as ET
+from typing import Dict
+
+import argcomplete
+import pytz
+from dateutil import parser, relativedelta
+
+PATH_TO_RECENTLY_USED_LOG = "/home/christoph/.local/share/recently-used.xbel"  # Change to your recent files log
+LOCAL_TIMEZONE = pytz.timezone("Europe/Amsterdam")  # Change to your local timezone
+
+
+def parse_recently_opened_markdown_files(path: str) -> Dict[str, dict]:
+    # from local folder
+
+    recently_opened = {}
+    for file_name in os.listdir(os.getcwd()):
+        if file_name.endswith(".md"):
+            recently_opened[file_name] = {
+                "path": os.path.join(os.getcwd(), file_name),
+                "modified": dt.datetime.now(LOCAL_TIMEZONE),
+                "created": dt.datetime.now(LOCAL_TIMEZONE),
+            }
+    root = ET.parse(path).getroot()
+
+    for type_tag in root.findall("bookmark"):
+
+        if (
+            type_tag.find("info")
+            .find("metadata")
+            .find("{http://www.freedesktop.org/standards/shared-mime-info}mime-type")
+            .get("type")
+            != "text/markdown"
+        ):
+            continue
+
+        path = type_tag.get("href").replace("file://", "")
+        name = os.path.basename(path)
+        modified = parser.isoparse(type_tag.get("modified"))
+        created = parser.isoparse(type_tag.get("added"))
+
+        recently_opened[name] = {"path": path, "modified": modified, "created": created}
+    return recently_opened
+
+
+RECENT_FILES = parse_recently_opened_markdown_files(PATH_TO_RECENTLY_USED_LOG)
+
+
+def MarkdownCompleter(**kwargs):
+    return RECENT_FILES.keys()
+
+
+def time_since_modified(modified: dt.datetime) -> str:
+    date_diff = relativedelta.relativedelta(dt.datetime.now(pytz.utc), modified)
+    print_dff = f"{date_diff.hours}h {date_diff.minutes}m"
+    if date_diff.days > 0:
+        print_dff = f"{date_diff.days}d " + print_dff
+    return print_dff
+
+
+def launch_typora(name: str) -> None:
+    if name in RECENT_FILES:
+        selected = RECENT_FILES[name]
+    else:
+        if not name.endswith(".md"):
+            name += ".md"
+        selected = {
+            "path": os.path.join(os.getcwd(), name),
+            "modified": dt.datetime.now(LOCAL_TIMEZONE),
+            "created": dt.datetime.now(LOCAL_TIMEZONE),
+        }
+
+    if os.path.exists(selected["path"]):
+        print(f"Opening {selected['path']} ...")
+    else:
+        print(f"Creating {selected['path']} ...")
+        with open(selected["path"], "w") as f:
+            f.write(f"# {name.rsplit('.', maxsplit=1)[0]}\n")
+
+    print_diff = time_since_modified(selected["modified"])
+    print(f"→ last modified {print_diff} ago (created: {selected['created'].date()})")
+
+    os.system(f"typora {selected['path']}")
+
+
+def print_recent_files():
+    ordered_files = {
+        k: v
+        for k, v in sorted(
+            RECENT_FILES.items(), key=lambda item: item[1]["modified"], reverse=True
+        )
+    }
+    print()
+    for name, data in ordered_files.items():
+        time_diff = time_since_modified(data["modified"])
+        print(
+            f"\033[95m{time_diff}\033[0m\t→ \033[1m{name}\033[0m\t\t({os.path.dirname(data['path'])})"
+        )
+    print()
+
+
+if __name__ == "__main__":
+    # Prepare autocomplete
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        "file", type=str, default="note.md", nargs="?",
+    ).completer = MarkdownCompleter
+    arg_parser.add_argument(
+        "-l", "--list", action="store_true", help="List recently opened files"
+    )
+    argcomplete.autocomplete(arg_parser)
+    args = arg_parser.parse_args()
+
+    if args.list:
+        print_recent_files()
+    else:
+        launch_typora(name=args.file)
